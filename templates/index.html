@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="panel">
+    <h1>Mis listas</h1>
+    <form class="row" action="/lists" method="post">
+        <input class="input" name="name" placeholder="Nueva lista" autocomplete="off" />
+        <button class="btn" type="submit">Crear</button>
+    </form>
+    <ul class="list">
+        {% for l in lists %}
+        <li class="card">
+            <a class="title" href="/lists/{{ l.id }}">{{ l.name }}</a>
+            <form class="inline" action="/lists/{{ l.id }}/rename" method="post">
+                <input class="input small" name="name" placeholder="Renombrar" />
+                <button class="btn ghost" type="submit">Guardar</button>
+            </form>
+            <form class="inline" action="/lists/{{ l.id }}/delete" method="post"
+                onsubmit="return confirm('Eliminar lista?')">
+                <button class="btn danger" type="submit">Eliminar</button>
+            </form>
+        </li>
+        {% else %}
+        <li class="empty">Crea tu primera lista</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<nav class="breadcrumbs"><a href="/">← Todas las listas</a></nav>
+<section class="panel">
+    <h1>{{ lst.name }}</h1>
+    <form class="row" action="/lists/{{ lst.id }}/items" method="post">
+        <input class="input" name="text" placeholder="Agregar ítem" autocomplete="off" />
+        <button class="btn" type="submit">Agregar</button>
+    </form>
+    <ul class="list">
+        {% for it in items %}
+        <li class="card item{% if it.done %} done{% endif %}" data-id="{{ it.id }}">
+            <span class="number">{{ loop.index }}.</span>
+            <button class="check" data-action="toggle">{% if it.done %}✔{% else %}○{% endif %}</button>
+            <span class="text">{{ it.text }}</span>
+            <div class="actions">
+                <button class="icon-btn" data-action="rename" title="Renombrar">
+                    ✏️
+                </button>
+                <form class="inline" action="/items/{{ it.id }}/delete" method="post"
+                    onsubmit="return confirm('Eliminar ítem?')">
+                    <button class="icon-btn danger" type="submit" title="Eliminar">🗑️</button>
+                </form>
+            </div>
+        </li>
+        {% else %}
+        <li class="empty">No hay ítems</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}

@@ -1,9 +1,10 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
-from database import engine, get_db
+from database import engine, get_db, init_app
 from models import Base, List, Item
 
-
 app = Flask(__name__)
+init_app(app)
 Base.metadata.create_all(bind=engine)
 
 @app.route("/")
@@ -20,6 +21,7 @@ def create_list():
     db = next(get_db())
     db.add(List(name=name))
     db.commit()
+    db.close()
     return redirect(url_for("home"))
 
 @app.post("/lists/<int:list_id>/rename")
@@ -32,6 +34,7 @@ def rename_list(list_id):
     if name:
         lst.name = name
         db.commit()
+    db.close()
     return redirect(url_for("home"))
 
 @app.post("/lists/<int:list_id>/delete")
@@ -42,6 +45,7 @@ def delete_list(list_id):
         abort(404)
     db.delete(lst)
     db.commit()
+    db.close()
     return redirect(url_for("home"))
 
 @app.get("/lists/<int:list_id>")
@@ -51,6 +55,7 @@ def view_list(list_id):
     if not lst:
         abort(404)
     items = db.query(Item).filter(Item.list_id == list_id).order_by(Item.id.desc()).all()
+    db.close()
     return render_template("list.html", lst=lst, items=items)
 
 @app.post("/lists/<int:list_id>/items")
@@ -63,6 +68,7 @@ def add_item(list_id):
     if text:
         db.add(Item(text=text, list_id=list_id))
         db.commit()
+    db.close()
     return redirect(url_for("view_list", list_id=list_id))
 
 @app.post("/items/<int:item_id>/toggle")
@@ -73,9 +79,12 @@ def toggle_item(item_id):
         abort(404)
     it.done = not it.done
     db.commit()
+    done = it.done
+    lid = it.list_id
+    db.close()
     if request.headers.get("X-Requested-With") == "fetch":
-        return jsonify({"ok": True, "done": it.done})
-    return redirect(url_for("view_list", list_id=it.list_id))
+        return jsonify({"ok": True, "done": done})
+    return redirect(url_for("view_list", list_id=lid))
 
 @app.post("/items/<int:item_id>/delete")
 def delete_item(item_id):
@@ -86,12 +95,16 @@ def delete_item(item_id):
     lid = it.list_id
     db.delete(it)
     db.commit()
+    db.close()
     if request.headers.get("X-Requested-With") == "fetch":
         return jsonify({"ok": True})
     return redirect(url_for("view_list", list_id=lid))
 
-import os
+@app.after_request
+def add_header(r):
+    r.headers["Cache-Control"] = "no-store"
+    return r
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
